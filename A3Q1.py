@@ -9,7 +9,7 @@ def ode1(y, t):
 
 # Exact solution for problem i)
 def exact_sol1(t):
-    return (1/3) * t * np.exp(3*t) - (1/9) * np.exp(3*t) + (1/9) * np.exp(-2*t)
+    return (1/5) * t * np.exp(3*t) - (1/25) * np.exp(3*t) + (1/25) * np.exp(-2*t)
 
 # Problem ii)
 # Define the second ODE: y' = 1 + (t - y)^2; y(2) = 1
