@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
-from scipy.optimize import fsolve
 
 # Define the Lotka-Volterra system
 def lotka_volterra(t, z):
@@ -35,27 +34,22 @@ t = solution.t
 x = solution.y[0]  # Predator population
 y = solution.y[1]  # Prey population
 
-# Find the first time when populations are equal
-# First, find where the difference changes sign
+# Find all times when populations are equal
+# Find where the difference changes sign
 diff = x - y
 sign_changes = np.where(np.diff(np.signbit(diff)))[0]
 
-# If there are sign changes, get the first one
-if len(sign_changes) > 0:
-    idx = sign_changes[0]
-    # Estimate the exact time using linear interpolation
+# Calculate exact crossing times and population values using linear interpolation
+crossing_times = []
+crossing_values = []
+for idx in sign_changes:
     t1, t2 = t[idx], t[idx + 1]
     x1, x2 = x[idx], x[idx + 1]
     y1, y2 = y[idx], y[idx + 1]
-
-    # Linear interpolation to find exact crossing time
     t_equal = t1 + (t2 - t1) * (x1 - y1) / ((x1 - y1) - (x2 - y2))
     population_equal = x1 + (x2 - x1) * (t_equal - t1) / (t2 - t1)
-
-    print(f"The populations are first equal at t ≈ {t_equal:.4f}")
-    print(f"Equal population value ≈ {population_equal:.4f} thousands")
-else:
-    print("The populations do not become equal within the simulation time.")
+    crossing_times.append(t_equal)
+    crossing_values.append(population_equal)
 
 # Create plots
 plt.figure(figsize=(12, 10))
@@ -64,9 +58,8 @@ plt.figure(figsize=(12, 10))
 plt.subplot(2, 2, 1)
 plt.plot(t, x, 'r-', label='Predators (x)')
 plt.plot(t, y, 'b-', label='Prey (y)')
-if len(sign_changes) > 0:
-    plt.axvline(x=t_equal, color='g', linestyle='--', label=f'Equal at t={t_equal:.4f}')
-    plt.plot(t_equal, population_equal, 'go', markersize=8)
+for t_equal, population_equal in zip(crossing_times, crossing_values):
+    plt.plot(t_equal, population_equal, 'go', markersize=6)  # Plot all intersection points
 plt.xlabel('Time')
 plt.ylabel('Population (thousands)')
 plt.title('Predator and Prey Populations vs Time')
@@ -77,27 +70,28 @@ plt.legend()
 plt.subplot(2, 2, 2)
 plt.plot(x, y, 'k-')
 plt.plot(x0, y0, 'ko', markersize=8, label='Initial state')
-if len(sign_changes) > 0:
-    plt.plot(population_equal, population_equal, 'go', markersize=8, label=f'Equal at t={t_equal:.4f}')
+plt.plot(population_equal, population_equal, 'go', markersize=8, label='Equal population')
 plt.xlabel('Predators (x)')
 plt.ylabel('Prey (y)')
 plt.title('Phase Space Portrait')
 plt.grid(True)
 plt.legend()
 
-# Plot the difference between populations
+# Plot the difference between populations (OPTIONAL)
 plt.subplot(2, 2, 3)
 plt.plot(t, diff, 'k-')
 plt.axhline(y=0, color='g', linestyle='--')
-if len(sign_changes) > 0:
-    plt.plot(t_equal, 0, 'go', markersize=8)
+for t_equal in crossing_times:
+    plt.plot(t_equal, 0, 'go', markersize=6)
 plt.xlabel('Time')
 plt.ylabel('x - y')
 plt.title('Difference Between Populations')
 plt.grid(True)
 
-# Plot a zoomed-in view around the first crossing point
-if len(sign_changes) > 0:
+# Plot a zoomed-in view around the first crossing point (OPTIONAL)
+if crossing_times:
+    t_equal = crossing_times[1]
+    population_equal = crossing_values[1]
     plt.subplot(2, 2, 4)
     zoom_range = 5  # Show 5 time units before and after crossing
     zoom_start = max(0, t_equal - zoom_range)
@@ -112,44 +106,9 @@ if len(sign_changes) > 0:
     plt.plot(t_equal, population_equal, 'go', markersize=8)
     plt.xlabel('Time')
     plt.ylabel('Population (thousands)')
-    plt.title('Zoomed View Around Equal Point')
+    plt.title('Zoomed View Around Crossing Point')
     plt.grid(True)
     plt.legend()
 
 plt.tight_layout()
 plt.show()
-
-# Calculate and plot the first few cycles of the system
-plt.figure(figsize=(12, 5))
-
-# Find local maxima of x to identify cycles
-from scipy.signal import find_peaks
-peaks, _ = find_peaks(x, height=0)
-
-if len(peaks) >= 3:
-    cycle_end_idx = peaks[2]  # Use the third peak to show two full cycles
-
-    plt.subplot(1, 2, 1)
-    plt.plot(t[:cycle_end_idx], x[:cycle_end_idx], 'r-', label='Predators (x)')
-    plt.plot(t[:cycle_end_idx], y[:cycle_end_idx], 'b-', label='Prey (y)')
-    if len(sign_changes) > 0 and t_equal <= t[cycle_end_idx]:
-        plt.axvline(x=t_equal, color='g', linestyle='--', label=f'Equal at t={t_equal:.4f}')
-    plt.xlabel('Time')
-    plt.ylabel('Population (thousands)')
-    plt.title('First Two Cycles of the System')
-    plt.grid(True)
-    plt.legend()
-
-    plt.subplot(1, 2, 2)
-    plt.plot(x[:cycle_end_idx], y[:cycle_end_idx], 'k-')
-    plt.plot(x0, y0, 'ko', markersize=8, label='Initial state')
-    if len(sign_changes) > 0:
-        plt.plot(population_equal, population_equal, 'go', markersize=8, label=f'Equal population')
-    plt.xlabel('Predators (x)')
-    plt.ylabel('Prey (y)')
-    plt.title('Phase Space (First Two Cycles)')
-    plt.grid(True)
-    plt.legend()
-
-    plt.tight_layout()
-    plt.show()
